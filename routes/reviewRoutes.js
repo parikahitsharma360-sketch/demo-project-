@@ -1,19 +1,18 @@
 // routes / review routes.js //
-
-const express = require ('express');
-
+const express = require('express');
 const router =  express.Router();
 
-const reviewController = ('../controllers' / reviewController);
+const reviewController = require('../controllers/reviewController');
 
-router.get('/', reviewController.getCostumerReview);
+
+router.get('/', reviewController.getAllReviews);
 
 router.post('/', reviewController.addReview);
+router.put('/:review_id', reviewController.updateReview);
 
-router.get('/', reviewController.getAllreview);
+router.get('/:customer_id', reviewController.getCustomerReview);
+router.get('/:review_id',reviewController.getSingleReview);
 
-router.put('/review_id', reviewController.updateReview);
+router.delete('/:review_id', reviewController.deleteReview);
 
-router.get('/:reviewId',reviewController.getSinglereview);
-
-module.exports = router();
+module.exports = router;

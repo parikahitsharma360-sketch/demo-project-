@@ -12,9 +12,9 @@ db.connect ((err) => {
     console.log("connection error", err);
     return;
 }
-console.log("mysql connected sucessfully!");
-
-
+console.log("mysql connected successfully!");
 });
 
-console.log("show databases")
+console.log("show databases");
+
+module.exports = db;

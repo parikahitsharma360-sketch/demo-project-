@@ -1,38 +1,30 @@
 // analytics //
 
+const { default: mongoose } = require('mongoose');
+
 const analyticsSchema = new mongoose.schema({
+  totalRevenue: Number,
 
-    totalRevenue: Number,
+  totalUser: Number,
 
-    totalUser: Number,
+  totalOrder: Number,
 
-    totalOrder: Number,
+  // daily stats //
 
-    // daily stats //
+  dailyStats: {
+    date: Date,
+    orders: Number,
+    revenue: Number,
+  },
 
-    dailyStats: {
+  // top products //
 
-        date: date,
-
-        orders: number,
-
-        revenue: number,
-
+  topProducts: [
+    {
+      productId: mongoose.types.schema.objectId,
+      totalSold: Number,
     },
-
-    // top products //
-
-    topProducts: [
-
-        {
-      productId: moongoose.types.schema.objectId,
-
-
-      totalSold: number,
-
-
-    },
-
-]
-
+  ],
 });
+
+module.exports = mongoose.model('Analytics', analyticsSchema);

@@ -1,61 +1,40 @@
-const mongoose = require(mongoose);
+const { default: mongoose } = require('mongoose');
 
-const reviewSchema = new mongoose.schema ({
+const reviewSchema = new mongoose.Schema({
+  costumer_id: {
+    type: Number,
+    require: true,
+  },
+  product_id: {
+    type: Number,
+    require: true,
+  },
 
-    costumer_id: {
+  costumer_name: {
+    type: String,
+    require: true,
+  },
 
-     type: number,
+  rating: {
+    type: Number,
+    require: true,
+  },
 
-     require: true
+  review_text: {
+    type: String,
+    require: true,
+  },
 
-    },
+  helpful_count: {
+    type: String,
+    require: true,
+  },
 
-product_id: {
-
-    type: number,
-
-    require: true
-},
-
-costumer_name: {
-
-    type: string,
-
-    require: true
-
-},
-
-rating: {
-
-    type: number,
-
-    require: true
-},
-
-review_text: {
-
-    type: string,
-
-    require: true
-
-},
-
-helpful_count: {
-
-    type: string,
-
-    require: true
-
-},
-
-timestamp: {
-
-    type: date,
-
-    default: date.now,
-
-    require: true
-
-}
-
+  timestamp: {
+    type: Date,
+    default: Date.now(),
+    require: true,
+  },
 });
+
+module.exports = mongoose.model('Review', reviewSchema);

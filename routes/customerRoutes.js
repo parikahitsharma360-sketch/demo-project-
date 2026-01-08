@@ -9,8 +9,8 @@ router.get('/', customerController.getAllCustomers);
 
 router.post('/', customerController.createCustomer);
 
-router.put('/:customer_id', customerController.updateCustomer);
+router.put('/:id', customerController.updateCustomer);
 
-router.delete('/:customer_id', customerController.deleteCustomer);
+router.delete('/:id', customerController.deleteCustomer);
 
 module.exports = router;

@@ -24,28 +24,12 @@ app.get('/', (req, res) => {
   });
 });
 
-// Simple placeholder mounts so you can navigate to each API route.
-// Replace these with `app.use('/api/products', require('./routes/productRoutes'))`
-// once those route files are fixed.
-app.use('/api/products', (req, res) => {
-  res.json({route: 'products', method: req.method});
-});
-
-app.use('/api/orders', (req, res) => {
-  res.json({route: 'orders', method: req.method});
-});
-
-app.use('/api/categories', (req, res) => {
-  res.json({route: 'categories', method: req.method});
-});
-
-app.use('/api/customers', (req, res) => {
-  res.json({route: 'customers', method: req.method});
-});
-
-app.use('/api/reviews', (req, res) => {
-  res.json({route: 'reviews', method: req.method});
-});
+// Mount real route modules
+app.use('/api/products', require('./routes/productRoutes'));
+app.use('/api/orders', require('./routes/orderRoutes'));
+app.use('/api/categories', require('./routes/categoryRoutes'));
+app.use('/api/customers', require('./routes/customerRoutes'));
+app.use('/api/reviews', require('./routes/reviewRoutes'));
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);

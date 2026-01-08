@@ -8,11 +8,11 @@ const reviewController = require('../controllers/reviewController');
 router.get('/', reviewController.getAllReviews);
 
 router.post('/', reviewController.addReview);
-router.put('/:review_id', reviewController.updateReview);
 
-router.get('/:customer_id', reviewController.getCustomerReview);
-router.get('/:review_id',reviewController.getSingleReview);
+router.get('/customer/:customer_id', reviewController.getCustomerReview);
 
-router.delete('/:review_id', reviewController.deleteReview);
+router.get('/:id', reviewController.getSingleReview);
+router.put('/:id', reviewController.updateReview);
+router.delete('/:id', reviewController.deleteReview);
 
 module.exports = router;

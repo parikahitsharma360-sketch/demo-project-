@@ -9,8 +9,8 @@ router.get('/', orderController.getAllOrders);
 
 router.post('/', orderController.createOrder);
 
-router.delete('/:order_id', orderController.deleteOrder);
+router.delete('/:id', orderController.deleteOrder);
 
-router.put('/:order_id', orderController.updateOrder);
+router.put('/:id', orderController.updateOrder);
 
 module.exports = router;

@@ -11,10 +11,10 @@ router.get('/', categoryController.getAllCategory);
 
 router.post('/', categoryController.createCategory);
 
-router.put('/:category_id', categoryController.updateCategory);
+router.put('/:id', categoryController.updateCategory);
 
-router.delete('/:category_id', categoryController.deleteCategory);
+router.delete('/:id', categoryController.deleteCategory);
 
-router.get('/:category_id', categoryController.getSingleCategory);
+router.get('/:id', categoryController.getSingleCategory);
 
 module.exports = router;

@@ -1,164 +1,75 @@
 const db = require('../config/mysql');
 
-// get all orders //
-// exports.getAllOrders = async (req, res) => {
-//   try {
-//     const [order] = await db.query('SELECT * FROM order');
-
-//     res.status(200).json({ success: true, data: order });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
-// create order //
-
 exports.createOrder = async (req, res) => {
   try {
-    const { order_id, costumer_id, total_amount, status } = req.body;
+    const { customer_id, total, status } = req.body;
+    const promiseDb = db.promise();
 
-    const [result] = await db.query(
-      'INSERT INTO order(order_id, costumer_id, total_amount, status)VALUES(? ? ? ?)'[
-        (order_id, costumer_id, total_amount, status)
-      ]
-    );
+    const [result] = await promiseDb.query('INSERT INTO orders (customer_id, total, status) VALUES (?, ?, ?)', [customer_id, total || 0, status || 'pending']);
 
-    // log activity //
-    await Activity.create({
-      order_id: result.insert,
-      activity_type: 'order_placed',
-      description: 'order placed successfully',
-      metadata: { order_id, total_amount, status, source },
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'order created successfully',
-    });
+    res.status(201).json({ success: true, message: 'Order created', orderId: result.insertId });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'err.message' });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
-
-// delete order //
 
 exports.deleteOrder = async (req, res) => {
   try {
-    const [result] = await db.query('DELETE FROM order WHERE id = ? ?', [
-      req.paramsId,
-    ]);
+    const id = req.params.id;
+    const promiseDb = db.promise();
+    const [result] = await promiseDb.query('DELETE FROM orders WHERE order_id = ?', [id]);
 
-    res.status(200).json({
-      success: true,
-      message: 'order Deleted successfully',
-    });
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    res.status(200).json({ success: true, message: 'Order deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-// update order //
 
 exports.updateOrder = async (req, res) => {
   try {
-    const { order_id, costumer_id, total_amount, status } = req.body;
-
+    const { total, status } = req.body;
     const orderId = req.params.id;
+    const promiseDb = db.promise();
 
-    const [result] = await db.query(
-      'UPDATE order SET  total_amount = ?, status = ? WHERE order_id = ?'[
-        (order_id, costumer_id, total_amount, status)
-      ]
-    );
+    const [result] = await promiseDb.query('UPDATE orders SET total = ?, status = ? WHERE order_id = ?', [total, status, orderId]);
 
-    if (rowaffected === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: 'order not updated' });
-    }
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Order not found' });
 
-    //  log activity //
-    await Activity.create({
-      orderId: parseInt(orderId),
-      activity_type: 'order updated',
-      description: ' order updated',
-      metadata: 'order_id, total_amount, currrency_type',
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'order created successfully',
-    });
+    res.status(200).json({ success: true, message: 'Order updated' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// get all orders with (pagination + search) //
-
 exports.getAllOrders = async (req, res) => {
   try {
+    const promiseDb = db.promise();
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const search = req.query.search || '';
     const offset = (page - 1) * limit;
 
-    const [orders] = await db.query(
-      'SELECT * FROM orders WHERE name LIKE ?, ORDER BY created_at DESC OFFSET ?'[
-        (`%${search}%`, limit, offset)
-      ]
-    );
+    const [rows] = await promiseDb.query('SELECT * FROM orders WHERE CAST(order_id AS CHAR) LIKE ? ORDER BY created_at DESC LIMIT ? OFFSET ?', [`%${search}%`, limit, offset]);
+    const [[{ total }]] = await promiseDb.query('SELECT COUNT(*) AS total FROM orders WHERE CAST(order_id AS CHAR) LIKE ?', [`%${search}%`]);
 
-    // count query //
-
-    const [[{ total }]] = await db.query(
-      'SELECT COUNT * AS total FROM orders WHERE name LIKE ?'[`%${search}%`]
-    );
-
-    const totalpages = Math.ceil(total / limit);
-
-    res.status(200).json({
-      success: true,
-      page,
-      limit,
-      totalpages,
-      totalresult: 'all orders',
-    });
+    res.status(200).json({ success: true, data: rows, page, limit, total, totalPages: Math.ceil(total / limit) });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: 'error fetching order',
-      message: err.message,
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// get single order / by id //
-
 exports.getSingleOrder = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id;
+    const promiseDb = db.promise();
+    const [rows] = await promiseDb.query('SELECT * FROM orders WHERE order_id = ?', [id]);
 
-    const [rows] = await db.query('SELECT * FROM order WHERE order_id = ?', [
-      id,
-    ]);
+    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Order not found' });
 
-    if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'order not found',
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'fetch order',
-      order: rows[0],
-    });
+    res.status(200).json({ success: true, order: rows[0] });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };

@@ -1,58 +1,37 @@
-// controllers / reiewcontrollers.js //
+// controllers/reviewController.js
 
-const Review = require('../models/review');
-
-// get all  reviews of customer //
+const Review = require('../models/Review');
 
 exports.getCustomerReview = async (req, res) => {
   try {
-    const review = await Review
-      .find({
-        customer_id: parseInt(req.params.customer_id),
-      })
-      .sort({ timestamp: -1 });
-
-    res.status(200).json({ success: true, data: review });
+    const customerId = parseInt(req.params.customer_id);
+    const reviews = await Review.find({ costumer_id: customerId }).sort({ timestamp: -1 });
+    res.status(200).json({ success: true, data: reviews });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-// add custom note/review //
 
 exports.addReview = async (req, res) => {
   try {
-    const {
-      product_id,
-      customer_id,
-      customer_name,
+    // accept either customer_id or costumer_id, normalize to model field names
+    const { product_id, customer_id, costumer_id, customer_name, costumer_name, rating, review_text, helpful_count, timestamp } = req.body;
+    const payload = {
+      product_id: product_id,
+      costumer_id: costumer_id || customer_id,
+      costumer_name: costumer_name || customer_name,
       rating,
       review_text,
       helpful_count,
       timestamp,
-    } = req.body;
+    };
 
-    const review = await Review.create({
-      product_id,
-      customer_id,
-      customer_name,
-      rating,
-      review_text,
-      helpful_count,
-      timestamp,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'customer review successfully',
-      data: review,
-    });
+    const created = await Review.create(payload);
+    res.status(201).json({ success: true, message: 'Review created', data: created });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-// get all review (with pagination) //
 
 exports.getAllReviews = async (req, res) => {
   try {
@@ -60,122 +39,45 @@ exports.getAllReviews = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const review = await Review
-      .find()
-      .sort({ timestamp: -1 })
-      .skip(skip)
-      .limit(limit);
+    const reviews = await Review.find().sort({ timestamp: -1 }).skip(skip).limit(limit);
+    const total = await Review.countDocuments();
 
-    const total = await review.countDocuments();
-
-    res.status(200).json({
-      success: true,
-      data: review,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    });
+    res.status(200).json({ success: true, data: reviews, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// delete review by id //
-
 exports.deleteReview = async (req, res) => {
   try {
     const { reviewId } = req.params;
-
-    const review = await Review.findById(reviewId);
-
-    if (!review) {
-      return res.status(404).json({
-        success: false,
-        message: 'review not found',
-      });
-    }
-
-    await review.findByIdAndDelete(reviewId);
-
-    res.status(200).json({
-      success: true,
-      message: 'review deleted successfully',
-      data: review,
-    });
+    const deleted = await Review.findByIdAndDelete(reviewId);
+    if (!deleted) return res.status(404).json({ success: false, message: 'Review not found' });
+    res.status(200).json({ success: true, message: 'Review deleted', data: deleted });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
-
-// update review //
 
 exports.updateReview = async (req, res) => {
   try {
     const { reviewId } = req.params;
-
-    const review = ({ review_text, rating, helpful_count } = req.body);
-
-    const updatereview = await Review.findByIdAndUpdate(
-      reviewId,
-      {
-        review_text,
-        rating,
-        helpfull_count,
-      },
-      {
-        new: true,
-        runValidator: true,
-      }
-    );
-
-    if (!reviewUpdate) {
-      return res.status(404).json({
-        success: false,
-        message: 'review not found',
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'review updated successfully',
-    });
+    const { review_text, rating, helpful_count } = req.body;
+    const updated = await Review.findByIdAndUpdate(reviewId, { review_text, rating, helpful_count }, { new: true, runValidators: true });
+    if (!updated) return res.status(404).json({ success: false, message: 'Review not found' });
+    res.status(200).json({ success: true, message: 'Review updated', data: updated });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
-
-// get single review / by id //
 
 exports.getSingleReview = async (req, res) => {
   try {
     const { review_id } = req.params;
-
     const review = await Review.findById(review_id);
-    if (!review) {
-      return res.status(404).json({
-        success: false,
-        message: 'review not found',
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      review,
-    });
+    if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
+    res.status(200).json({ success: true, data: review });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: 'server error',
-      error: err.message,
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };

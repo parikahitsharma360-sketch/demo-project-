@@ -1,216 +1,115 @@
-//controllers// productControllers.js://
+const db = require('../config/mysql');
 
-const db = require('/..config/mysql');
-
-// Get all products//
-
+// Get all products (with optional pagination + search)
 exports.getAllProducts = async (req, res) => {
   try {
-    const [products] = await db.query('SELECT * FROM products');
+    const promiseDb = db.promise();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const search = req.query.search || '';
+    const offset = (page - 1) * limit;
 
-    res.json({ success: true, data: products });
+    const [rows] = await promiseDb.query(
+      'SELECT * FROM products WHERE product_name LIKE ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
+      [`%${search}%`, limit, offset]
+    );
+
+    const [[{ total }]] = await promiseDb.query(
+      'SELECT COUNT(*) AS total FROM products WHERE product_name LIKE ?',
+      [`%${search}%`]
+    );
+
+    res.status(200).json({ success: true, data: rows, page, limit, total, totalPages: Math.ceil(total / limit) });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // create products //
-
 exports.createProduct = async (req, res) => {
   try {
-    const {
-      product_id,
-      product_name,
-      description,
-      price,
-      stock_quantity,
-      category_id,
-      url_image,
-    } = req.body;
+    const { product_name, description, price, stock_quantity, category_id, url_image } = req.body;
+    const promiseDb = db.promise();
 
-    const [result] = await db.query(
-      'INSERT INTO products(product_id, product_name, description, price, stock_quantity, category_id, url_image)VALUES(? ? ?)'[
-        (product_id,
-        product_name,
-        description,
-        price,
-        stock_quantity,
-        category_id,
-        url_image)
-      ]
+    const [result] = await promiseDb.query(
+      'INSERT INTO products (product_name, description, price, stock_quantity, category_id, url_image) VALUES (?, ?, ?, ?, ?, ?)',
+      [product_name, description, price, stock_quantity, category_id, url_image]
     );
 
-    res.status(201).json({
-      success: true,
-
-      message: 'product created successfully',
-
-      data: { result },
-    });
+    res.status(201).json({ success: true, message: 'Product created', productId: result.insertId });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// costumer review in product //
-
+// customer review in product //
 exports.reviewProduct = async (req, res) => {
   try {
-    const { costumer_id, product_id } = req.body;
+    const { customer_id, product_id, rating, comment } = req.body;
+    const promiseDb = db.promise();
 
-    const [result] = await db.query(
-      'INSERT INTO costumer(costumer_id, product_id)VALUES(? ?)'[
-        (costumer_id, product_id)
-      ]
+    await promiseDb.query(
+      'INSERT INTO reviews (customer_id, product_id, rating, comment) VALUES (?, ?, ?, ?)',
+      [customer_id, product_id, rating || null, comment || null]
     );
 
-    // log activity  in mongodb //
-
-    const Activity = require('../models/Activity');
-
-    await Activity.create({
-      costumer_id: parseInt(costumer_id),
-      activity_type: 'review',
-      description: `costumer review in product$(product_id)`,
-      metadata: { product_id },
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'costumer review submitted  successfully',
-    });
+    res.status(201).json({ success: true, message: 'Review submitted' });
   } catch (err) {
-    res.status(201).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
 // update product //
-
 exports.updateProduct = async (req, res) => {
   try {
-    const { product_id, name, description } = req.body;
-
+    const { product_name, description, price, stock_quantity, category_id, url_image } = req.body;
     const productId = req.params.id;
+    const promiseDb = db.promise();
 
-    const [result] = await db.query(
-      'UPDATE FROM product SET product_id = ?, name = ?, description = ?'[
-        (product_id, name, description)
-      ]
+    const [result] = await promiseDb.query(
+      'UPDATE products SET product_name = ?, description = ?, price = ?, stock_quantity = ?, category_id = ?, url_image = ? WHERE product_id = ?',
+      [product_name, description, price, stock_quantity, category_id, url_image, productId]
     );
 
-    if (rowsAffcted === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'product not found',
-      });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    // log activity //
-
-    await Activity.create({
-      product_id: parseInt(productId),
-      activity_type: 'product update',
-      description: `new product{name} update`,
-      metadata: { description, source, name },
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'product updated successfully',
-    });
+    res.status(200).json({ success: true, message: 'Product updated' });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
 // delete product //
-
 exports.deleteProduct = async (req, res) => {
   try {
-    const [result] = db.query(
-      'DELETE FROM product WWERE product_id = ?'[req.params.body]
-    );
+    const productId = req.params.id;
+    const promiseDb = db.promise();
 
-    res.status(201).json({
-      success: true,
-      message: 'product deleted successfully',
-    });
+    const [result] = await promiseDb.query('DELETE FROM products WHERE product_id = ?', [productId]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'Product deleted' });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
-  }
-};
-
-// get all product with(pagination + search) //
-
-exports.getAllProducts = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 500;
-    const search = req.query.search || '';
-    const offset = (page - 1) * limit;
-
-    const [product] = await db.query(
-      'SELECT * FROM products name LIKE ?, ORDER BY created_at DESC, OFFSET  ?'[
-        (`%${search}%`, limit, offset)
-      ]
-    );
-
-    // count query //
-    const [[{ total }]] = await db.query(
-      'SELECT COUNT * AS total FROM product WHERE name LIKE ?'[`%${search}%`]
-    );
-
-    const totalpages = Math.ceil(total / limit);
-
-    res.status(201).json({
-      success: true,
-      page,
-      limit,
-      totalpages,
-      totalresult: 'all product',
-    });
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: 'error fetching product',
-      error: err.message,
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
 // get single product / by id //
-
 exports.getSingleProduct = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id;
+    const promiseDb = db.promise();
+    const [rows] = await promiseDb.query('SELECT * FROM products WHERE product_id = ?', [id]);
 
-    const [rows] = await db.query(
-      'SELECT * FROM product WHERE product_id = ?',
-      [id]
-    );
+    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Product not found' });
 
-    if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'product not found',
-      });
-    }
-
-    res.status(201).json({
-      success: true,
-      message: 'fetch product',
-      product: rows[0],
-    });
+    res.status(200).json({ success: true, product: rows[0] });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
